@@ -13,10 +13,12 @@ st.title("📊 Controle Financeiro Pessoal")
 
 # === AUTENTICAÇÃO COM GOOGLE SHEETS ===
 def autenticar_google():
-    escopo = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-
+    escopo = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    # Remove a conversão para json.loads, já que st.secrets já é um dict
     credenciais = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["GOOGLE_SERVICE_ACCOUNT"], escopo)
-
     cliente = gspread.authorize(credenciais)
     return cliente
 
