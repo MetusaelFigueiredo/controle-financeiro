@@ -17,7 +17,6 @@ def autenticar_google():
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive"
     ]
-    # Remove a conversão para json.loads, já que st.secrets já é um dict
     credenciais = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["GOOGLE_SERVICE_ACCOUNT"], escopo)
     cliente = gspread.authorize(credenciais)
     return cliente
@@ -31,6 +30,8 @@ if "dados" not in st.session_state:
     df = get_as_dataframe(aba)
     df = df.dropna(how="all")
     df["Data"] = pd.to_datetime(df["Data"], errors='coerce')
+    df["Valor (R$)"] = pd.to_numeric(df["Valor (R$)"], errors="coerce")
+    df.loc[df["Categoria"] == "Despesa", "Valor (R$)"] *= -1
     st.session_state.dados = df
 
 # === MAPEAMENTO DE SUBCATEGORIAS ===
@@ -69,7 +70,8 @@ obs = st.text_area("Observações")
 
 # === SALVAR NA PLANILHA ===
 if st.button("Adicionar Lançamento"):
-    novo = pd.DataFrame([[data, descricao, categoria, tipo_despesa, subcategoria, valor, parcelas,
+    valor_final = -valor if categoria == "Despesa" else valor
+    novo = pd.DataFrame([[data, descricao, categoria, tipo_despesa, subcategoria, valor_final, parcelas,
                           pagamento, status, responsavel, obs]],
                         columns=[
                             "Data", "Descrição", "Categoria", "Tipo de Despesa", "Subcategoria", "Valor (R$)", "Parcelas",
