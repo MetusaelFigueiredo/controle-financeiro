@@ -45,11 +45,14 @@ def carregar_dados():
 if "dados" not in st.session_state:
     st.session_state.dados = carregar_dados()
 
+# === LOGIN SIMPLES ===
+usuario = st.sidebar.selectbox("Entrar como", ["Zael", "Mari"])
+st.sidebar.success(f"Você está logado como {usuario}")
+
 subcategorias_opcoes = {
     "Casa": ["Aluguel", "Condomínio", "IPTU", "Manutenção"],
     "Carro": ["Combustível", "Seguro", "Manutenção", "IPVA"],
     "Consórcio": ["HS"],
-    "Igreja": ["Dízimo", "Ofertas","Missões"],
     "Energia": ["Conta de Luz"],
     "Mercado": ["Compras Mensais", "Extras"],
     "Lazer": ["Viagem", "Cinema", "Restaurante", "Beleza"],
@@ -74,7 +77,7 @@ with ab_lanc:
     pagamento = col4.selectbox("Pagamento", ["Transferência", "Cartão Crédito", "Boleto", "Pix", "Dinheiro"])
 
     status = st.selectbox("Status", ["Pago", "A Pagar", "Futuro"])
-    responsavel = st.selectbox("Responsável", ["Zael", "Mari", "Casal"])
+    responsavel = st.selectbox("Responsável", [usuario, "Casal"])
 
     tipo_despesa = "—"
     subcategoria = "—"
