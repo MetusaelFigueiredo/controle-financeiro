@@ -7,6 +7,7 @@ import json
 import gspread
 from gspread_dataframe import set_with_dataframe, get_as_dataframe
 from oauth2client.service_account import ServiceAccountCredentials
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Controle Financeiro", layout="wide")
 st.title("📊 Controle Financeiro Pessoal")
@@ -39,7 +40,6 @@ subcategorias_opcoes = {
     "Casa": ["Aluguel", "Condomínio", "IPTU", "Manutenção"],
     "Carro": ["Combustível", "Seguro", "Manutenção", "IPVA"],
     "Consórcio": ["HS"],
-    "Dízimo": ["Dízimo", "Ofertas","Missões"],
     "Energia": ["Conta de Luz"],
     "Mercado": ["Compras Mensais", "Extras"],
     "Lazer": ["Viagem", "Cinema", "Restaurante", "Beleza"],
@@ -111,3 +111,19 @@ col1, col2, col3 = st.columns(3)
 col1.metric("Receitas", f"R$ {total_receitas:,.2f}")
 col2.metric("Despesas", f"R$ {abs(total_despesas):,.2f}")
 col3.metric("Saldo", f"R$ {saldo:,.2f}")
+
+# === 📆 PAINEL MENSAL ===
+st.subheader("📆 Painel Mensal")
+
+df_painel = st.session_state.dados.copy()
+df_painel["AnoMes"] = df_painel["Data"].dt.to_period("M")
+resumo = df_painel.groupby(["AnoMes", "Categoria"])["Valor (R$)"].sum().unstack().fillna(0)
+resumo["Saldo"] = resumo.sum(axis=1)
+
+st.dataframe(resumo, use_container_width=True)
+
+fig, ax = plt.subplots()
+resumo.plot(kind="bar", stacked=False, ax=ax)
+ax.set_title("Evolução Mensal")
+ax.set_ylabel("R$")
+st.pyplot(fig)
