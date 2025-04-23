@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import date
 import os
+import json
 
 import gspread
 from gspread_dataframe import set_with_dataframe, get_as_dataframe
@@ -13,7 +14,8 @@ st.title("📊 Controle Financeiro Pessoal")
 # === AUTENTICAÇÃO COM GOOGLE SHEETS ===
 def autenticar_google():
     escopo = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    credenciais = ServiceAccountCredentials.from_json_keyfile_name("credenciais_google.json", escopo)
+    json_keyfile = json.loads(st.secrets["GOOGLE_SERVICE_ACCOUNT"])
+    credenciais = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, escopo)
     cliente = gspread.authorize(credenciais)
     return cliente
 
