@@ -38,6 +38,7 @@ subcategorias_opcoes = {
     "Casa": ["Aluguel", "Condomínio", "IPTU", "Manutenção"],
     "Carro": ["Combustível", "Seguro", "Manutenção", "IPVA"],
     "Consórcio": ["HS"],
+    "Dízimo": ["Dízimo", "Ofertas","Missões"],
     "Energia": ["Conta de Luz"],
     "Mercado": ["Compras Mensais", "Extras"],
     "Lazer": ["Viagem", "Cinema", "Restaurante", "Beleza"],
