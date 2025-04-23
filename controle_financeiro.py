@@ -3,25 +3,32 @@ import pandas as pd
 from datetime import date
 import os
 
+import gspread
+from gspread_dataframe import set_with_dataframe, get_as_dataframe
+from oauth2client.service_account import ServiceAccountCredentials
+
 st.set_page_config(page_title="Controle Financeiro", layout="wide")
 st.title("📊 Controle Financeiro Pessoal")
 
-CAMINHO_ARQUIVO = "dados_financeiros.csv"
+# === AUTENTICAÇÃO COM GOOGLE SHEETS ===
+def autenticar_google():
+    escopo = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    credenciais = ServiceAccountCredentials.from_json_keyfile_name("credenciais_google.json", escopo)
+    cliente = gspread.authorize(credenciais)
+    return cliente
 
-# Tenta carregar dados do arquivo
+cliente = autenticar_google()
+planilha = cliente.open("Controle Financeiro")
+aba = planilha.sheet1
+
+# === LER OS DADOS DA PLANILHA ===
 if "dados" not in st.session_state:
-    if os.path.exists(CAMINHO_ARQUIVO):
-        st.session_state.dados = pd.read_csv(CAMINHO_ARQUIVO)
-    else:
-        st.session_state.dados = pd.DataFrame(columns=[
-            "Data", "Descrição", "Categoria", "Tipo de Despesa", "Subcategoria", "Valor (R$)", "Parcelas",
-            "Forma de Pagamento", "Status", "Responsável", "Observações"
-        ])
+    df = get_as_dataframe(aba)
+    df = df.dropna(how="all")
+    df["Data"] = pd.to_datetime(df["Data"], errors='coerce')
+    st.session_state.dados = df
 
-# Garantir que a coluna "Data" esteja em datetime64[ns]
-st.session_state.dados["Data"] = pd.to_datetime(st.session_state.dados["Data"], errors='coerce')
-
-# Mapeamento de subcategorias por tipo de despesa
+# === MAPEAMENTO DE SUBCATEGORIAS ===
 subcategorias_opcoes = {
     "Casa": ["Aluguel", "Condomínio", "IPTU", "Manutenção"],
     "Carro": ["Combustível", "Seguro", "Manutenção", "IPVA"],
@@ -33,7 +40,7 @@ subcategorias_opcoes = {
     "Outros": ["Diversos"]
 }
 
-# Formulário
+# === FORMULÁRIO ===
 st.subheader("📌 Novo Lançamento")
 col1, col2, col3 = st.columns(3)
 data = pd.to_datetime(col1.date_input("Data", value=date.today()))
@@ -46,7 +53,6 @@ pagamento = st.selectbox("Forma de Pagamento", ["Transferência", "Cartão Créd
 status = st.selectbox("Status", ["Pago", "A Pagar", "Futuro"])
 responsavel = st.selectbox("Responsável", ["Zael", "Mari", "Casal"])
 
-# Campos dinâmicos
 tipo_despesa = "—"
 subcategoria = "—"
 if categoria == "Despesa":
@@ -55,7 +61,7 @@ if categoria == "Despesa":
 
 obs = st.text_area("Observações")
 
-# Botão de envio
+# === SALVAR NA PLANILHA ===
 if st.button("Adicionar Lançamento"):
     novo = pd.DataFrame([[data, descricao, categoria, tipo_despesa, subcategoria, valor, parcelas,
                           pagamento, status, responsavel, obs]],
@@ -64,30 +70,23 @@ if st.button("Adicionar Lançamento"):
                             "Forma de Pagamento", "Status", "Responsável", "Observações"
                         ])
     st.session_state.dados = pd.concat([st.session_state.dados, novo], ignore_index=True)
-    st.session_state.dados.to_csv(CAMINHO_ARQUIVO, index=False)
+    set_with_dataframe(aba, st.session_state.dados)
     st.success("Lançamento adicionado com sucesso!")
 
-# Exibir tabela
+# === TABELA DE LANÇAMENTOS ===
 st.subheader("📄 Lançamentos")
 st.dataframe(st.session_state.dados, use_container_width=True)
-
-# Aviso de data inválida
-if st.session_state.dados["Data"].isnull().any():
-    st.warning("⚠️ Existem lançamentos com data inválida.")
 
 # === RESUMO FINANCEIRO COM FILTROS ===
 st.subheader("📊 Resumo Financeiro")
 
-# Filtros
 with st.expander("🔎 Filtros"):
     col1, col2, col3 = st.columns(3)
     filtro_responsavel = col1.selectbox("Filtrar por Responsável", ["Todos"] + sorted(st.session_state.dados["Responsável"].dropna().unique()))
     filtro_tipo = col2.selectbox("Filtrar por Tipo de Despesa", ["Todos"] + sorted(st.session_state.dados["Tipo de Despesa"].dropna().unique()))
     filtro_mes = col3.selectbox("Filtrar por Mês", ["Todos"] + sorted(st.session_state.dados["Data"].dropna().dt.to_period("M").astype(str).unique()))
 
-# Aplicar filtros
 df_filtrado = st.session_state.dados.copy()
-
 if filtro_responsavel != "Todos":
     df_filtrado = df_filtrado[df_filtrado["Responsável"] == filtro_responsavel]
 if filtro_tipo != "Todos":
@@ -95,12 +94,11 @@ if filtro_tipo != "Todos":
 if filtro_mes != "Todos":
     df_filtrado = df_filtrado[df_filtrado["Data"].dt.to_period("M").astype(str) == filtro_mes]
 
-# Cálculos
+# === CÁLCULOS E MÉTRICAS ===
 total_receitas = df_filtrado[df_filtrado["Categoria"] == "Receita"]["Valor (R$)"].sum()
 total_despesas = df_filtrado[df_filtrado["Categoria"] == "Despesa"]["Valor (R$)"].sum()
 saldo = total_receitas + total_despesas
 
-# Exibir resumo
 col1, col2, col3 = st.columns(3)
 col1.metric("Receitas", f"R$ {total_receitas:,.2f}")
 col2.metric("Despesas", f"R$ {abs(total_despesas):,.2f}")
