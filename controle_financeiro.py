@@ -148,14 +148,14 @@ with ab_lanc:
 
     obs = st.text_area("Observações")
 
-    if st.button("Salvar Lançamento"):
+       if st.button("Salvar Lançamento"):
         novo = pd.DataFrame([[data, descricao, categoria, tipo_despesa, subcategoria, valor, parcelas,
-                               pagamento, status, responsavel, obs]],
-                             columns=["Data", "Descrição", "Categoria", "Tipo de Despesa", "Subcategoria", "Valor (R$)", "Parcelas",
-                                      "Forma de Pagamento", "Status", "Responsável", "Observações"])
+                              pagamento, status, responsavel, obs]],
+                            columns=["Data", "Descrição", "Categoria", "Tipo de Despesa", "Subcategoria", "Valor (R$)", "Parcelas",
+                                     "Forma de Pagamento", "Status", "Responsável", "Observações"])
         st.session_state.dados = pd.concat([st.session_state.dados, novo], ignore_index=True)
         set_with_dataframe(aba, st.session_state.dados)
-            st.session_state.dados = carregar_dados()
+        st.session_state.dados = carregar_dados()
         st.success("Lançamento salvo com sucesso!")
 
 with ab_resumo:
@@ -231,21 +231,21 @@ with ab_importar:
 
         st.markdown("🔧 Você pode editar as categorias antes de salvar:")
         edited_df = st.data_editor(df_extrato, use_container_width=True, num_rows="dynamic")
+        if st.button("Salvar lançamentos importados"):
+            edited_df["Parcelas"] = "Única"
+            edited_df["Forma de Pagamento"] = "Cartão Crédito"
+            edited_df["Status"] = "Pago"
+            edited_df["Observações"] = "Importado do extrato Sicredi"
 
-       if st.button("Salvar lançamentos importados"):
-    edited_df["Parcelas"] = "Única"
-    edited_df["Forma de Pagamento"] = "Cartão Crédito"
-    edited_df["Status"] = "Pago"
-    edited_df["Observações"] = "Importado do extrato Sicredi"
+            edited_df = edited_df.rename(columns={"Categoria": "Tipo de Despesa"})
+            colunas_corrigidas = [
+                "Data", "Descrição", "Tipo de Despesa", "Subcategoria", "Valor (R$)",
+                "Parcelas", "Forma de Pagamento", "Status", "Responsável", "Observações"
+            ]
+            edited_df = edited_df[colunas_corrigidas]
 
-    edited_df = edited_df.rename(columns={"Categoria": "Tipo de Despesa"})
-    colunas_corrigidas = [
-        "Data", "Descrição", "Tipo de Despesa", "Subcategoria", "Valor (R$)",
-        "Parcelas", "Forma de Pagamento", "Status", "Responsável", "Observações"
-    ]
-    edited_df = edited_df[colunas_corrigidas]
+            st.session_state.dados = pd.concat([st.session_state.dados, edited_df], ignore_index=True)
+            set_with_dataframe(aba, st.session_state.dados)
+            st.session_state.dados = carregar_dados()
+            st.success("Lançamentos importados com sucesso!")
 
-    st.session_state.dados = pd.concat([st.session_state.dados, edited_df], ignore_index=True)
-    set_with_dataframe(aba, st.session_state.dados)
-    st.session_state.dados = carregar_dados()
-    st.success("Lançamentos importados com sucesso!")
