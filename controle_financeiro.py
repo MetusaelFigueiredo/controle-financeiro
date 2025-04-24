@@ -148,8 +148,8 @@ with ab_lanc:
 
     obs = st.text_area("Observações")
 
-       if st.button("Salvar Lançamento"):
-        novo = pd.DataFrame([[data, descricao, categoria, tipo_despesa, subcategoria, valor, parcelas,
+    if st.button("Salvar Lançamento"):
+    novo = pd.DataFrame([[data, descricao, categoria, tipo_despesa, subcategoria, valor, parcelas,
                               pagamento, status, responsavel, obs]],
                             columns=["Data", "Descrição", "Categoria", "Tipo de Despesa", "Subcategoria", "Valor (R$)", "Parcelas",
                                      "Forma de Pagamento", "Status", "Responsável", "Observações"])
