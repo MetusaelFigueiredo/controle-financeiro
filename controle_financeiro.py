@@ -237,10 +237,11 @@ with ab_importar:
     edited_df["Forma de Pagamento"] = "Cartão Crédito"
     edited_df["Status"] = "Pago"
     edited_df["Observações"] = "Importado do extrato Sicredi"
-    colunas = ["Data", "Descrição", "Categoria", "Tipo de Despesa", "Subcategoria", "Valor (R$)", "Parcelas",
-               "Forma de Pagamento", "Status", "Responsável", "Observações"]
     edited_df = edited_df.rename(columns={"Categoria": "Tipo de Despesa"})
-    colunas_corrigidas = ["Data", "Descrição", "Tipo de Despesa", "Subcategoria", "Valor (R$)", "Parcelas", "Forma de Pagamento", "Status", "Responsável", "Observações"]
+    colunas_corrigidas = [
+        "Data", "Descrição", "Tipo de Despesa", "Subcategoria", "Valor (R$)",
+        "Parcelas", "Forma de Pagamento", "Status", "Responsável", "Observações"
+    ]
     edited_df = edited_df[colunas_corrigidas]
     st.session_state.dados = pd.concat([st.session_state.dados, edited_df], ignore_index=True)
     set_with_dataframe(aba, st.session_state.dados)
