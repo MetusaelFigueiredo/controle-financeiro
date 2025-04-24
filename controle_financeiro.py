@@ -232,17 +232,19 @@ with ab_importar:
         st.markdown("🔧 Você pode editar as categorias antes de salvar:")
         edited_df = st.data_editor(df_extrato, use_container_width=True, num_rows="dynamic")
 
-        if st.button("Salvar lançamentos importados"):
+       if st.button("Salvar lançamentos importados"):
     edited_df["Parcelas"] = "Única"
     edited_df["Forma de Pagamento"] = "Cartão Crédito"
     edited_df["Status"] = "Pago"
     edited_df["Observações"] = "Importado do extrato Sicredi"
+
     edited_df = edited_df.rename(columns={"Categoria": "Tipo de Despesa"})
     colunas_corrigidas = [
         "Data", "Descrição", "Tipo de Despesa", "Subcategoria", "Valor (R$)",
         "Parcelas", "Forma de Pagamento", "Status", "Responsável", "Observações"
     ]
     edited_df = edited_df[colunas_corrigidas]
+
     st.session_state.dados = pd.concat([st.session_state.dados, edited_df], ignore_index=True)
     set_with_dataframe(aba, st.session_state.dados)
     st.session_state.dados = carregar_dados()
