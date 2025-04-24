@@ -81,3 +81,26 @@ with ab_lanc:
         set_with_dataframe(aba, st.session_state.dados)
         st.session_state.dados = carregar_dados()
         st.success("Lançamento salvo com sucesso!")
+
+with ab_resumo:
+    st.subheader("📊 Resumo Financeiro")
+    col1, col2, col3 = st.columns(3)
+    filtro_resp = col1.selectbox("Responsável", ["Todos"] + sorted(st.session_state.dados["Responsável"].dropna().unique()))
+    filtro_tipo = col2.selectbox("Tipo de Despesa", ["Todos"] + sorted(st.session_state.dados["Tipo de Despesa"].dropna().unique()))
+    filtro_mes = col3.selectbox("Mês", ["Todos"] + sorted(st.session_state.dados["Data"].dropna().dt.to_period("M").astype(str).unique()))
+
+    df_f = st.session_state.dados.copy()
+    if filtro_resp != "Todos":
+        df_f = df_f[df_f["Responsável"] == filtro_resp]
+    if filtro_tipo != "Todos":
+        df_f = df_f[df_f["Tipo de Despesa"] == filtro_tipo]
+    if filtro_mes != "Todos":
+        df_f = df_f[df_f["Data"].dt.to_period("M").astype(str) == filtro_mes]
+
+    receitas = df_f[df_f["Categoria"] == "Receita"]["Valor (R$)"].sum()
+    despesas = df_f[df_f["Categoria"] == "Despesa"]["Valor (R$)"].sum()
+    saldo = receitas + despesas
+
+    col1.metric("Receitas", f"R$ {receitas:,.2f}")
+    col2.metric("Despesas", f"R$ {abs(despesas):,.2f}")
+    col3.metric("Saldo", f"R$ {saldo:,.2f}")
