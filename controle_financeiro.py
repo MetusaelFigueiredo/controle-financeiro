@@ -61,6 +61,8 @@ subcategorias_opcoes = {
 # === CATEGORIZADOR BÁSICO ===
 def categorizar(desc):
     desc = desc.lower()
+    if "pag fat" in desc or "pagamento fatura" in desc:
+        return None  # Ignorar lançamentos irrelevantes
     if "posto" in desc or "shell" in desc:
         return ("Carro", "Combustível")
     if "netflix" in desc or "amazon" in desc or "stream" in desc:
@@ -111,20 +113,22 @@ with ab_importar:
         df_raw["Valor (R$)"] = df_raw["Valor"].apply(parse_valor)
         df_raw["Responsável"] = df_raw["Nome"].apply(normalizar_responsavel)
         df_raw["Descrição"] = df_raw["Descrição"].str.strip()
-        df_raw[["Categoria", "Subcategoria"]] = df_raw["Descrição"].apply(lambda x: pd.Series(categorizar(x)))
+
+        df_raw[["Categoria", "Subcategoria"]] = df_raw["Descrição"].apply(lambda x: pd.Series(categorizar(x) if categorizar(x) else (None, None)))
         df_extrato = df_raw[["Data", "Descrição", "Categoria", "Subcategoria", "Valor (R$)", "Responsável"]].dropna()
 
-        st.dataframe(df_extrato, use_container_width=True)
+        st.markdown("🔧 Você pode editar as categorias antes de salvar:")
+        edited_df = st.data_editor(df_extrato, use_container_width=True, num_rows="dynamic")
 
         if st.button("Salvar lançamentos importados"):
-            df_extrato["Parcelas"] = "Única"
-            df_extrato["Forma de Pagamento"] = "Cartão Crédito"
-            df_extrato["Status"] = "Pago"
-            df_extrato["Observações"] = "Importado do extrato Sicredi"
+            edited_df["Parcelas"] = "Única"
+            edited_df["Forma de Pagamento"] = "Cartão Crédito"
+            edited_df["Status"] = "Pago"
+            edited_df["Observações"] = "Importado do extrato Sicredi"
             colunas = ["Data", "Descrição", "Categoria", "Tipo de Despesa", "Subcategoria", "Valor (R$)", "Parcelas",
                        "Forma de Pagamento", "Status", "Responsável", "Observações"]
-            df_extrato = df_extrato.rename(columns={"Categoria": "Tipo de Despesa"})
-            df_extrato = df_extrato[colunas]
-            st.session_state.dados = pd.concat([st.session_state.dados, df_extrato], ignore_index=True)
+            edited_df = edited_df.rename(columns={"Categoria": "Tipo de Despesa"})
+            edited_df = edited_df[colunas]
+            st.session_state.dados = pd.concat([st.session_state.dados, edited_df], ignore_index=True)
             set_with_dataframe(aba, st.session_state.dados)
             st.success("Lançamentos importados com sucesso!")
