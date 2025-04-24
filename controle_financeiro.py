@@ -155,6 +155,7 @@ with ab_lanc:
                                       "Forma de Pagamento", "Status", "Responsável", "Observações"])
         st.session_state.dados = pd.concat([st.session_state.dados, novo], ignore_index=True)
         set_with_dataframe(aba, st.session_state.dados)
+            st.session_state.dados = carregar_dados()
         st.success("Lançamento salvo com sucesso!")
 
 with ab_resumo:
