@@ -33,6 +33,7 @@ def carregar_planilha():
 
 aba = carregar_planilha()
 
+@st.cache_data(ttl=300)
 def carregar_dados():
     df = get_as_dataframe(aba)
     df = df.dropna(how="all")
@@ -43,12 +44,14 @@ def carregar_dados():
     df.loc[df["Categoria"].isna() & (df["Tipo de Despesa"] == "—"), "Categoria"] = "Receita"
     return df
 
-st.session_state.dados = carregar_dados()
+if "dados" not in st.session_state:
+    st.session_state.dados = carregar_dados()
 
 usuario = st.sidebar.selectbox("Entrar como", ["Zael", "Mari"])
 st.sidebar.success(f"Você está logado como {usuario}")
 
-ab_lanc, ab_resumo, ab_painel, ab_graficos = st.tabs(["➕ Lançar", "📊 Resumo", "📆 Painel", "📈 Gráficos"])
+# === ABAS ===
+ab_lanc, ab_resumo, ab_painel, ab_graficos, ab_importar = st.tabs(["➕ Lançar", "📊 Resumo", "📆 Painel", "📈 Gráficos", "📥 Importar Fatura"])
 
 with ab_lanc:
     st.subheader("➕ Novo Lançamento")
@@ -103,35 +106,27 @@ with ab_resumo:
     col2.metric("Despesas", f"R$ {abs(despesas):,.2f}")
     col3.metric("Saldo", f"R$ {saldo:,.2f}")
 
-with ab_painel:
-    st.subheader("📆 Painel Mensal")
-    df_painel = st.session_state.dados.copy()
-    df_painel["AnoMes"] = df_painel["Data"].dt.to_period("M")
-    resumo_mensal = df_painel.groupby(["AnoMes", "Categoria"])["Valor (R$)"].sum().unstack(fill_value=0)
-
-    fig, ax = plt.subplots()
-    resumo_mensal.plot(kind="bar", ax=ax)
-    ax.set_title("Evolução Mensal")
-    ax.set_ylabel("Valor (R$)")
-    ax.grid(True)
-    st.pyplot(fig)
+    with st.expander("📋 Ver dados filtrados"):
+        st.dataframe(df_f, use_container_width=True)
 
 with ab_graficos:
-    st.subheader("📈 Gráficos de Despesas por Categoria e Subcategoria")
-    df_g = st.session_state.dados.copy()
-    df_g = df_g[df_g["Categoria"] == "Despesa"]
+    st.subheader("📈 Gráfico de Despesas por Categoria")
+    df_graf = st.session_state.dados.copy()
+    df_graf = df_graf[df_graf["Categoria"] == "Despesa"]
 
-    col1, col2 = st.columns(2)
-    with col1:
-        cat = df_g.groupby("Tipo de Despesa")["Valor (R$)"].sum().sort_values()
+    if not df_graf.empty:
+        graf_desp_cat = df_graf.groupby("Tipo de Despesa")["Valor (R$)"].sum().sort_values()
         fig1, ax1 = plt.subplots()
-        cat.plot(kind="barh", ax=ax1, color="coral")
+        graf_desp_cat.plot(kind="barh", ax=ax1)
         ax1.set_title("Despesas por Tipo de Despesa")
+        ax1.set_xlabel("Valor (R$)")
         st.pyplot(fig1)
 
-    with col2:
-        sub = df_g.groupby("Subcategoria")["Valor (R$)"].sum().sort_values()
+        graf_desp_sub = df_graf.groupby("Subcategoria")["Valor (R$)"].sum().sort_values()
         fig2, ax2 = plt.subplots()
-        sub.plot(kind="barh", ax=ax2, color="skyblue")
+        graf_desp_sub.plot(kind="barh", ax=ax2, color="orange")
         ax2.set_title("Despesas por Subcategoria")
+        ax2.set_xlabel("Valor (R$)")
         st.pyplot(fig2)
+    else:
+        st.info("Nenhuma despesa registrada para exibir nos gráficos.")
