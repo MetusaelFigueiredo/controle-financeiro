@@ -1,6 +1,7 @@
-streamlit
 pandas
+streamlit
 gspread
-gspread-dataframe
 oauth2client
+gspread_dataframe
 matplotlib
+seaborn
