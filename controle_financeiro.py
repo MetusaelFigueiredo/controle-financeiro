@@ -8,6 +8,7 @@ import gspread
 from gspread_dataframe import set_with_dataframe, get_as_dataframe
 from oauth2client.service_account import ServiceAccountCredentials
 import matplotlib.pyplot as plt
+import seaborn as sns
 import io
 
 st.set_page_config(page_title="Controle Financeiro", layout="wide")
@@ -32,7 +33,6 @@ def carregar_planilha():
 
 aba = carregar_planilha()
 
-@st.cache_data(ttl=300)
 def carregar_dados():
     df = get_as_dataframe(aba)
     df = df.dropna(how="all")
@@ -43,16 +43,12 @@ def carregar_dados():
     df.loc[df["Categoria"].isna() & (df["Tipo de Despesa"] == "—"), "Categoria"] = "Receita"
     return df
 
-if "dados" not in st.session_state:
-    st.session_state.dados = carregar_dados()
+st.session_state.dados = carregar_dados()
 
 usuario = st.sidebar.selectbox("Entrar como", ["Zael", "Mari"])
 st.sidebar.success(f"Você está logado como {usuario}")
 
-# As variáveis subcategorias_opcoes e mapeamento_personalizado devem ser mantidas aqui como no código original
-
-# === ABAS ===
-ab_lanc, ab_resumo, ab_painel, ab_importar = st.tabs(["➕ Lançar", "📊 Resumo", "🗖️ Painel", "📥 Importar Fatura"])
+ab_lanc, ab_resumo, ab_painel, ab_graficos = st.tabs(["➕ Lançar", "📊 Resumo", "📆 Painel", "📈 Gráficos"])
 
 with ab_lanc:
     st.subheader("➕ Novo Lançamento")
@@ -69,8 +65,8 @@ with ab_lanc:
 
     tipo_despesa = subcategoria = "—"
     if categoria == "Despesa":
-        tipo_despesa = st.selectbox("Tipo de Despesa", list(subcategorias_opcoes.keys()))
-        subcategoria = st.selectbox("Subcategoria", subcategorias_opcoes[tipo_despesa])
+        tipo_despesa = st.text_input("Tipo de Despesa")
+        subcategoria = st.text_input("Subcategoria")
 
     obs = st.text_area("Observações")
 
@@ -86,8 +82,6 @@ with ab_lanc:
 
 with ab_resumo:
     st.subheader("📊 Resumo Financeiro")
-    st.session_state.dados = carregar_dados()  # ⚠️ Força a recarga mais atual da base
-
     col1, col2, col3 = st.columns(3)
     filtro_resp = col1.selectbox("Responsável", ["Todos"] + sorted(st.session_state.dados["Responsável"].dropna().unique()))
     filtro_tipo = col2.selectbox("Tipo de Despesa", ["Todos"] + sorted(st.session_state.dados["Tipo de Despesa"].dropna().unique()))
@@ -108,3 +102,36 @@ with ab_resumo:
     col1.metric("Receitas", f"R$ {receitas:,.2f}")
     col2.metric("Despesas", f"R$ {abs(despesas):,.2f}")
     col3.metric("Saldo", f"R$ {saldo:,.2f}")
+
+with ab_painel:
+    st.subheader("📆 Painel Mensal")
+    df_painel = st.session_state.dados.copy()
+    df_painel["AnoMes"] = df_painel["Data"].dt.to_period("M")
+    resumo_mensal = df_painel.groupby(["AnoMes", "Categoria"])["Valor (R$)"].sum().unstack(fill_value=0)
+
+    fig, ax = plt.subplots()
+    resumo_mensal.plot(kind="bar", ax=ax)
+    ax.set_title("Evolução Mensal")
+    ax.set_ylabel("Valor (R$)")
+    ax.grid(True)
+    st.pyplot(fig)
+
+with ab_graficos:
+    st.subheader("📈 Gráficos de Despesas por Categoria e Subcategoria")
+    df_g = st.session_state.dados.copy()
+    df_g = df_g[df_g["Categoria"] == "Despesa"]
+
+    col1, col2 = st.columns(2)
+    with col1:
+        cat = df_g.groupby("Tipo de Despesa")["Valor (R$)"].sum().sort_values()
+        fig1, ax1 = plt.subplots()
+        cat.plot(kind="barh", ax=ax1, color="coral")
+        ax1.set_title("Despesas por Tipo de Despesa")
+        st.pyplot(fig1)
+
+    with col2:
+        sub = df_g.groupby("Subcategoria")["Valor (R$)"].sum().sort_values()
+        fig2, ax2 = plt.subplots()
+        sub.plot(kind="barh", ax=ax2, color="skyblue")
+        ax2.set_title("Despesas por Subcategoria")
+        st.pyplot(fig2)
