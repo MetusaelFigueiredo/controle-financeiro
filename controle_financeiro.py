@@ -39,6 +39,8 @@ def carregar_dados():
     df["Data"] = pd.to_datetime(df["Data"], errors='coerce')
     df["Valor (R$)"] = pd.to_numeric(df["Valor (R$)"], errors="coerce")
     df.loc[df["Categoria"] == "Despesa", "Valor (R$)"] *= -1
+    df.loc[df["Categoria"].isna() & (df["Tipo de Despesa"] != "—"), "Categoria"] = "Despesa"
+    df.loc[df["Categoria"].isna() & (df["Tipo de Despesa"] == "—"), "Categoria"] = "Receita"
     return df
 
 if "dados" not in st.session_state:
@@ -50,7 +52,7 @@ st.sidebar.success(f"Você está logado como {usuario}")
 # As variáveis subcategorias_opcoes e mapeamento_personalizado devem ser mantidas aqui como no código original
 
 # === ABAS ===
-ab_lanc, ab_resumo, ab_painel, ab_importar = st.tabs(["➕ Lançar", "📊 Resumo", "📆 Painel", "📥 Importar Fatura"])
+ab_lanc, ab_resumo, ab_painel, ab_importar = st.tabs(["➕ Lançar", "📊 Resumo", "🗖️ Painel", "📥 Importar Fatura"])
 
 with ab_lanc:
     st.subheader("➕ Novo Lançamento")
@@ -84,6 +86,8 @@ with ab_lanc:
 
 with ab_resumo:
     st.subheader("📊 Resumo Financeiro")
+    st.session_state.dados = carregar_dados()  # ⚠️ Força a recarga mais atual da base
+
     col1, col2, col3 = st.columns(3)
     filtro_resp = col1.selectbox("Responsável", ["Todos"] + sorted(st.session_state.dados["Responsável"].dropna().unique()))
     filtro_tipo = col2.selectbox("Tipo de Despesa", ["Todos"] + sorted(st.session_state.dados["Tipo de Despesa"].dropna().unique()))
